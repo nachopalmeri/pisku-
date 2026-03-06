@@ -1,0 +1,14 @@
+{
+  "sessions": [
+    {
+      "project": "mi-proyecto",
+      "timestamp": "2026-03-06T14:44:11.925062",
+      "skills": [
+        "postgresql-sqlalchemy"
+      ],
+      "skill_count": 1,
+      "tokens_saved": 4000
+    }
+  ],
+  "total_tokens_saved": 4000
+}

@@ -1,0 +1,9 @@
+{
+  "tier": "free",
+  "license_key": null,
+  "license_hash": null,
+  "activated_at": null,
+  "expires_at": null,
+  "last_validated": null,
+  "server_url": "http://localhost:8000"
+}

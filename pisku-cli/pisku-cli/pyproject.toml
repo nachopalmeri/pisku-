@@ -1,0 +1,39 @@
+[build-system]
+requires      = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name            = "pisku"
+version         = "0.3.0"
+description     = "Audit your AI skills before burning tokens."
+readme          = "README.md"
+license         = { text = "MIT" }
+requires-python = ">=3.11"
+keywords        = ["ai", "llm", "skills", "claude-code", "opencode", "tokens", "audit", "developer-tools"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "typer[all]>=0.12",
+    "rich>=13.7",
+    "httpx>=0.27",
+    "pyperclip>=1.8",
+]
+
+[project.urls]
+Homepage   = "https://pisku.dev"
+Repository = "https://github.com/nachopalmeri/pisku"
+Issues     = "https://github.com/nachopalmeri/pisku/issues"
+
+[project.scripts]
+pisku = "cli.main:app"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["cli*"]

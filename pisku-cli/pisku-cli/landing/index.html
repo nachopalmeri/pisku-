@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PISKU — Stop wasting tokens on irrelevant context</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --bg:        #070a0f;
+      --surface:   #0d1117;
+      --surface2:  #161b22;
+      --border:    rgba(0, 229, 255, 0.12);
+      --cyan:      #00e5ff;
+      --green:     #39ff14;
+      --red:       #ff4d6d;
+      --text:      #cdd9e5;
+      --muted:     #5b6b7c;
+      --font-display: 'Syne', sans-serif;
+      --font-mono:    'JetBrains Mono', monospace;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    /* ─── BASE ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    h1,h2,h3,h4,h5 { font-family: var(--font-display); }
+    code, pre, .mono { font-family: var(--font-mono); }
+
+    /* ─── NOISE OVERLAY ──────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── GLOW BLOBS ─────────────────────────────────────── */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.07;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 { width: 600px; height: 600px; background: var(--cyan); top: -200px; right: -100px; }
+    .blob-2 { width: 500px; height: 500px; background: var(--green); bottom: 0; left: -150px; }
+
+    /* ─── NAVBAR ─────────────────────────────────────────── */
+    .navbar {
+      background: rgba(7, 10, 15, 0.7) !important;
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 1000;
+    }
+    .navbar-brand {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: var(--cyan) !important;
+      letter-spacing: -0.02em;
+    }
+    .nav-link {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--muted) !important;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--cyan) !important; }
+
+    /* ─── BUTTONS ────────────────────────────────────────── */
+    .btn-pisku {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      padding: 0.7rem 1.8rem;
+      border-radius: 4px;
+      border: none;
+      background: var(--cyan);
+      color: #000;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-pisku:hover {
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+      transform: translateY(-2px);
+      color: #000;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text) !important;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 0.7rem 1.8rem;
+      border-radius: 4px;
+      transition: border-color 0.2s, color 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan) !important; }
+
+    /* ─── HERO ───────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 0 80px;
+      position: relative;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--cyan);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 2rem;
+      height: 1px;
+      background: var(--cyan);
+    }
+    .hero-title {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+    }
+    .hero-title .accent { color: var(--cyan); }
+    .hero-title .strike {
+      position: relative;
+      color: var(--muted);
+    }
+    .hero-title .strike::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%;
+      height: 2px;
+      background: var(--red);
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2rem;
+    }
+    .hero-meta span { color: var(--green); }
+
+    /* ─── TERMINAL WINDOW ────────────────────────────────── */
+    .terminal {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,229,255,0.06), 0 40px 80px rgba(0,0,0,0.6);
+    }
+    .terminal-bar {
+      background: #161b22;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red   { background: #ff5f57; }
+    .dot-yellow{ background: #febc2e; }
+    .dot-green { background: #28c840; }
+    .terminal-title {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .terminal-body {
+      padding: 1.25rem 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.9;
+      min-height: 320px;
+    }
+    .t-prompt { color: var(--muted); }
+    .t-cmd    { color: var(--cyan); }
+    .t-info   { color: var(--muted); }
+    .t-cat    { color: #f97316; font-weight: 700; }
+    .t-skill  { color: var(--text); }
+    .t-num    { color: var(--muted); }
+    .t-ok     { color: var(--green); }
+    .t-save   { color: var(--cyan); font-weight: 700; }
+    .t-line { display: block; opacity: 0; }
+
+    /* typewriter cursor */
+    .cursor {
+      display: inline-block;
+      width: 8px; height: 14px;
+      background: var(--cyan);
+      vertical-align: middle;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ─── SECTION BASE ───────────────────────────────────── */
+    section { padding: 100px 0; position: relative; }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--cyan);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+
+    /* ─── DIVIDER ────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0;
+    }
+
+    /* ─── FEATURE CARDS ──────────────────────────────────── */
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      height: 100%;
+      transition: border-color 0.3s, transform 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feat-card:hover { border-color: var(--cyan); transform: translateY(-4px); }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      font-size: 2rem;
+      margin-bottom: 1.25rem;
+      display: block;
+    }
+    .feat-card h4 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    .feat-card p { font-size: 0.9rem; color: var(--muted); margin: 0; }
+
+    /* ─── STATS BAR ──────────────────────────────────────── */
+    .stats-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 0;
+    }
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--cyan);
+      line-height: 1;
+    }
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.5rem;
+    }
+
+    /* ─── PRICING ────────────────────────────────────────── */
+    .pricing-toggle {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 3rem;
+    }
+    .toggle-label {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .toggle-switch {
+      width: 52px; height: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.3s;
+    }
+    .toggle-switch.active { background: var(--cyan); }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+    .toggle-switch.active::after { transform: translateX(24px); }
+    .badge-save {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      background: rgba(57,255,20,0.1);
+      color: var(--green);
+      border: 1px solid rgba(57,255,20,0.2);
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+    }
+
+    .pricing-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2.5rem;
+      height: 100%;
+      position: relative;
+      transition: border-color 0.3s;
+    }
+    .pricing-card.featured {
+      border-color: var(--cyan);
+      background: linear-gradient(135deg, rgba(0,229,255,0.04) 0%, var(--surface) 100%);
+    }
+    .pricing-card.featured::before {
+      content: '⚡ MOST POPULAR';
+      position: absolute;
+      top: -1px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      background: var(--cyan);
+      color: #000;
+      padding: 0.25rem 1rem;
+      border-radius: 0 0 4px 4px;
+    }
+    .price-tier {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .price-amount {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .price-period {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 2rem;
+    }
+    .feature-list li {
+      font-size: 0.875rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .feature-list li:last-child { border-bottom: none; }
+    .check { color: var(--green); font-size: 0.9rem; flex-shrink: 0; }
+    .cross { color: var(--muted); font-size: 0.9rem; flex-shrink: 0; }
+
+    /* ─── PROFILE TABLE ──────────────────────────────────── */
+    .profile-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .profile-table th {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      font-weight: 400;
+    }
+    .profile-table th:first-child { border-radius: 8px 0 0 0; }
+    .profile-table th:last-child  { border-radius: 0 8px 0 0; }
+    .profile-table td {
+      padding: 1rem 1.5rem;
+      font-size: 0.875rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+    }
+    .profile-table tr:last-child td { border-bottom: none; }
+    .profile-table tbody tr {
+      background: var(--surface);
+      transition: background 0.2s;
+    }
+    .profile-table tbody tr:hover { background: var(--surface2); }
+    .profile-badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 3px;
+      border: 1px solid;
+      display: inline-block;
+    }
+    .badge-backend  { background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.2); color: var(--cyan); }
+    .badge-frontend { background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.2); color: #f97316; }
+    .badge-web3     { background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.2); color: #a855f7; }
+    .badge-full     { background: rgba(57,255,20,0.08); border-color: rgba(57,255,20,0.2); color: var(--green); }
+
+    /* ─── LLM TABLE ──────────────────────────────────────── */
+    .llm-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      font-size: 0.875rem;
+    }
+    .llm-name {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 0.25rem;
+    }
+    .llm-use { color: var(--muted); font-size: 0.8rem; }
+
+    /* ─── TESTIMONIALS ───────────────────────────────────── */
+    .testi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      position: relative;
+    }
+    .testi-card::before {
+      content: '"';
+      font-family: var(--font-display);
+      font-size: 5rem;
+      line-height: 1;
+      color: var(--cyan);
+      opacity: 0.15;
+      position: absolute;
+      top: 0.5rem; left: 1.5rem;
+    }
+    .testi-text {
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      padding-top: 1rem;
+    }
+    .testi-author {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .testi-author strong { color: var(--cyan); display: block; margin-bottom: 0.1rem; }
+
+    /* ─── FAQ ────────────────────────────────────────────── */
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 0;
+    }
+    .faq-q {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .faq-q .arrow { color: var(--cyan); font-size: 0.8rem; transition: transform 0.2s; }
+    .faq-q.open .arrow { transform: rotate(180deg); }
+    .faq-a {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 1rem;
+      display: none;
+    }
+    .faq-a.open { display: block; }
+
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 3rem 0;
+    }
+    .footer-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: var(--cyan);
+    }
+    .footer-tagline {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    .footer-link {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-link:hover { color: var(--cyan); }
+    .footer-copy {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── MODAL ──────────────────────────────────────────── */
+    .modal-content {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .modal-header { border-color: var(--border); }
+    .modal-title { font-family: var(--font-display); font-weight: 700; }
+    .form-control {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      border-radius: 4px;
+    }
+    .form-control:focus {
+      background: var(--surface);
+      border-color: var(--cyan);
+      color: var(--text);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+    }
+    .form-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+
+    /* ─── ANIMATIONS ─────────────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-in.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2.4rem; }
+      section { padding: 60px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- ─── NAVBAR ─── -->
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="#">PISKU</a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navLinks">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navLinks">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-3 gap-2 mt-3 mt-lg-0">
+        <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+        <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+          <a href="#pricing" class="btn-pisku">Get Started →</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section id="hero">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <!-- Copy -->
+      <div class="col-lg-6">
+        <div class="hero-eyebrow">CLI Tool para Developers</div>
+        <h1 class="hero-title">
+          Dejá de<br>
+          <span class="strike">gastar tokens</span><br>
+          en contexto<br>
+          <span class="accent">irrelevante.</span>
+        </h1>
+        <p class="hero-sub">
+          PISKU te deja elegir exactamente qué skills y docs mandarle al LLM.
+          Cero ruido. Más precisión. Menos costo.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <a href="#" onclick="copyInstall(event)" class="btn-pisku" id="install-btn">
+            pip install pisku
+          </a>
+          <a href="#pricing" class="btn-ghost">Ver planes →</a>
+        </div>
+        <div class="hero-meta">
+          <span>↑ Click para copiar</span> &nbsp;·&nbsp; Python 3.11+ &nbsp;·&nbsp; macOS / Linux / Windows
+        </div>
+      </div>
+      <!-- Terminal -->
+      <div class="col-lg-6 fade-in">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-red"></div>
+            <div class="dot dot-yellow"></div>
+            <div class="dot dot-green"></div>
+            <span class="terminal-title">bash — pisku init mi-dapp</span>
+          </div>
+          <div class="terminal-body" id="terminal-output">
+            <span class="cursor" id="cursor"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── STATS BAR ─── -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="row text-center g-4">
+      <div class="col-6 col-md-3">
+        <div class="stat-num" id="stat-tokens">0</div>
+        <div class="stat-label">Tokens ahorrados hoy</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-num">~80%</div>
+        <div class="stat-label">Reducción de contexto</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Skills de ejemplo incluidas</div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-num">$0</div>
+        <div class="stat-label">Para empezar</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FEATURES ─── -->
+<section id="features">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-lg-6">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Lo que hace PISKU<br>por tu workflow</h2>
+      </div>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4 fade-in">
+        <div class="feat-card">
+          <span class="feat-icon">💰</span>
+          <h4>Ahorro real de tokens</h4>
+          <p>Seleccionás solo las skills relevantes al proyecto. El LLM recibe contexto quirúrgico, no un volcado de tu carpeta entera. Hasta 80% menos tokens por sesión.</p>
+        </div>
+      </div>
+      <div class="col-md-4 fade-in" style="transition-delay: 0.1s">
+        <div class="feat-card">
+          <span class="feat-icon">📦</span>
+          <h4>Skills por categoría</h4>
+          <p>Backend, Frontend, Web3, DevOps. Cada skill es un <code>.md</code> especializado. Agregás los tuyos, los compartís, los versionás con git.</p>
+        </div>
+      </div>
+      <div class="col-md-4 fade-in" style="transition-delay: 0.2s">
+        <div class="feat-card">
+          <span class="feat-icon">⚡</span>
+          <h4>Menú numérico, cero fricción</h4>
+          <p>Un prompt interactivo te muestra las skills disponibles. Elegís por número. El contexto final se genera solo. Listo para pegar en Claude, GPT, o cualquier LLM.</p>
+        </div>
+      </div>
+      <div class="col-md-4 fade-in" style="transition-delay: 0.05s">
+        <div class="feat-card">
+          <span class="feat-icon">📊</span>
+          <h4>Stats de ahorro [PRO]</h4>
+          <p>Dashboard completo con histórico por proyecto, desglose por skill, y export CSV. Sabés exactamente cuánto ahorraste este mes.</p>
+        </div>
+      </div>
+      <div class="col-md-4 fade-in" style="transition-delay: 0.15s">
+        <div class="feat-card">
+          <span class="feat-icon">🔑</span>
+          <h4>Activación simple</h4>
+          <p>Un solo comando: <code>pisku activate-pro &lt;key&gt;</code>. Sin registros complicados. La key se valida online y se cachea localmente.</p>
+        </div>
+      </div>
+      <div class="col-md-4 fade-in" style="transition-delay: 0.25s">
+        <div class="feat-card">
+          <span class="feat-icon">🧩</span>
+          <h4>Portable y sin lock-in</h4>
+          <p>Todo en archivos <code>.md</code> y <code>.json</code> locales. No depende de ningún servicio en la nube. Funciona offline. Es tuyo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── PRICING ─── -->
+<section id="pricing">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title mb-4">Simple. Sin sorpresas.</h2>
+      <div class="pricing-toggle">
+        <span class="toggle-label">Mensual</span>
+        <div class="toggle-switch" id="billingToggle" onclick="toggleBilling()"></div>
+        <span class="toggle-label">Anual <span class="badge-save ms-1">2 meses gratis</span></span>
+      </div>
+    </div>
+    <div class="row justify-content-center g-4">
+      <!-- FREE -->
+      <div class="col-md-5 col-lg-4 fade-in">
+        <div class="pricing-card">
+          <div class="price-tier">Free</div>
+          <div class="price-amount">$0</div>
+          <div class="price-period">Para siempre</div>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Hasta 10 skills</li>
+            <li><span class="check">✓</span> 1 proyecto activo</li>
+            <li><span class="check">✓</span> Menú de selección interactivo</li>
+            <li><span class="check">✓</span> Stats básicas (total ahorrado)</li>
+            <li><span class="check">✓</span> Soporte via GitHub Issues</li>
+            <li><span class="cross">✗</span> Dashboard completo</li>
+            <li><span class="cross">✗</span> Export CSV</li>
+            <li><span class="cross">✗</span> Proyectos ilimitados</li>
+          </ul>
+          <a href="https://github.com/pisku" class="btn-ghost w-100 text-center" style="border-radius:4px; display:block; padding: 0.75rem 1.5rem;">
+            Descargar gratis
+          </a>
+        </div>
+      </div>
+      <!-- PRO -->
+      <div class="col-md-5 col-lg-4 fade-in" style="transition-delay:0.1s">
+        <div class="pricing-card featured">
+          <div class="price-tier">Pro</div>
+          <div class="price-amount" id="priceDisplay" style="color: var(--cyan)">$5</div>
+          <div class="price-period" id="periodDisplay">por mes</div>
+          <ul class="feature-list">
+            <li><span class="check">✓</span> Skills <strong>ilimitadas</strong></li>
+            <li><span class="check">✓</span> Proyectos <strong>ilimitados</strong></li>
+            <li><span class="check">✓</span> Dashboard completo con gráficos</li>
+            <li><span class="check">✓</span> Export CSV del histórico</li>
+            <li><span class="check">✓</span> Token analytics por proyecto/skill</li>
+            <li><span class="check">✓</span> Priority support (email)</li>
+            <li><span class="check">✓</span> Beta access a nuevas features</li>
+            <li><span class="check">✓</span> Backup en Supabase (opcional)</li>
+          </ul>
+          <button class="btn-pisku w-100 text-center" onclick="openCheckout('monthly')" id="checkoutBtn"
+            style="border-radius:4px; border:none; cursor:pointer;">
+            Activar PRO →
+          </button>
+          <p style="font-family: var(--font-mono); font-size:0.7rem; color: var(--muted); text-align:center; margin-top:0.75rem;">
+            Stripe · Cancela cuando quieras
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── PROFILE RECOMMENDATIONS ─── -->
+<section id="profiles">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-lg-7">
+        <div class="section-label">Recomendaciones por perfil</div>
+        <h2 class="section-title">¿Qué skills usar<br>según tu proyecto?</h2>
+      </div>
+    </div>
+    <div class="table-responsive fade-in">
+      <table class="profile-table">
+        <thead>
+          <tr>
+            <th>Perfil</th>
+            <th>Skills recomendadas</th>
+            <th>Tier sugerido</th>
+            <th>Impacto de ahorro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="profile-badge badge-backend">Backend Python</span>
+              <div style="font-size:0.78rem; color:var(--muted); margin-top:0.4rem">APIs, microservices, DB</div>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--cyan)">
+              python-fastapi · postgresql · supabase
+            </td>
+            <td style="font-size:0.8rem">Free alcanza</td>
+            <td style="color: var(--green); font-family: var(--font-mono); font-size:0.85rem">~60% menos tokens</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="profile-badge badge-web3">Web3 / Solidity</span>
+              <div style="font-size:0.78rem; color:var(--muted); margin-top:0.4rem">Smart contracts, DeFi, Base</div>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--cyan)">
+              solidity-base · ethers-v6 · hardhat
+            </td>
+            <td style="font-size:0.8rem">Free alcanza</td>
+            <td style="color: var(--green); font-family: var(--font-mono); font-size:0.85rem">~75% menos tokens</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="profile-badge badge-frontend">Frontend</span>
+              <div style="font-size:0.78rem; color:var(--muted); margin-top:0.4rem">UI, componentes, landing</div>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--cyan)">
+              bootstrap5-dark · css-patterns · a11y
+            </td>
+            <td style="font-size:0.8rem">Free alcanza</td>
+            <td style="color: var(--green); font-family: var(--font-mono); font-size:0.85rem">~55% menos tokens</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="profile-badge badge-full">Fullstack Senior</span>
+              <div style="font-size:0.78rem; color:var(--muted); margin-top:0.4rem">Múltiples proyectos, varios stacks</div>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--cyan)">
+              Todo lo anterior + devops-docker · ci-github
+            </td>
+            <td style="font-size:0.8rem; color: var(--cyan)">⚡ PRO</td>
+            <td style="color: var(--green); font-family: var(--font-mono); font-size:0.85rem">~80% menos tokens</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── LLM RECOMMENDATIONS ─── -->
+<section id="models">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-lg-6">
+        <div class="section-label">LLMs recomendados</div>
+        <h2 class="section-title">¿Qué modelo usar<br>para cada tarea?</h2>
+      </div>
+    </div>
+    <div class="row g-3 fade-in">
+      <div class="col-md-6 col-lg-3">
+        <div class="llm-card">
+          <div class="llm-name">Claude Sonnet</div>
+          <div class="llm-use mb-2">Arquitectura, refactoring, code review</div>
+          <div style="font-size:0.75rem; color:var(--muted)">Razonamiento profundo. Ideal cuando el contexto importa.</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="llm-card">
+          <div class="llm-name">GPT-4o</div>
+          <div class="llm-use mb-2">Debugging rápido, completions</div>
+          <div style="font-size:0.75rem; color:var(--muted)">Velocidad alta. Bueno para iteraciones cortas.</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="llm-card">
+          <div class="llm-name">Gemini 1.5 Pro</div>
+          <div class="llm-use mb-2">Análisis de repos grandes, logs</div>
+          <div style="font-size:0.75rem; color:var(--muted)">Context window enorme. Para cuando tenés mucho que leer.</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="llm-card">
+          <div class="llm-name">DeepSeek Coder</div>
+          <div class="llm-use mb-2">Tasks de código puro, Solidity</div>
+          <div style="font-size:0.75rem; color:var(--muted)">Gratis, open source. Sorprendentemente bueno para Web3.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── TESTIMONIALS ─── -->
+<section id="testimonials">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="section-label">Testimonios</div>
+      <h2 class="section-title">Lo que dicen los usuarios</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3 fade-in">
+        <div class="testi-card">
+          <p class="testi-text">"Bajé de $80 a $18 por mes en API costs. Ahora sé exactamente qué contexto estoy mandando en cada sesión."</p>
+          <div class="testi-author">
+            <strong>@nachopython</strong>
+            Backend Engineer · Buenos Aires
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 fade-in" style="transition-delay:0.1s">
+        <div class="testi-card">
+          <p class="testi-text">"Era lo más simple que necesitaba. No un IDE plugin ni una app. Un CLI que entiende mi workflow. PRO vale la pena."</p>
+          <div class="testi-author">
+            <strong>@solidity_marc</strong>
+            Smart Contract Dev · Barcelona
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 fade-in" style="transition-delay:0.2s">
+        <div class="testi-card">
+          <p class="testi-text">"La curva de aprendizaje es cero. Lo instalé, corrí <code>pisku init</code>, y en 2 minutos tenía mi contexto armado."</p>
+          <div class="testi-author">
+            <strong>@caro_dev</strong>
+            Fullstack · Medellín
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 fade-in" style="transition-delay:0.3s">
+        <div class="testi-card">
+          <p class="testi-text">"Los reportes CSV del PRO me ayudan a justificar el gasto en LLMs ante mi equipo. Nunca pensé que necesitaba eso."</p>
+          <div class="testi-author">
+            <strong>@rodo_tech</strong>
+            Tech Lead · Santiago
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── FAQ ─── -->
+<section id="faq">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="text-center mb-5">
+          <div class="section-label">FAQ</div>
+          <h2 class="section-title">Preguntas frecuentes</h2>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">
+            ¿Cómo instalo PISKU?
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-a">
+            Necesitás Python 3.11+. Corrés <code>pip install pisku</code> y ya tenés el comando <code>pisku</code> disponible globalmente. Igual que instalás <code>black</code>, <code>ruff</code>, o cualquier tool Python.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">
+            ¿Cómo funciona la activación PRO?
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-a">
+            Comprás PRO con Stripe. Recibís una license key por email tipo <code>PISKU-PRO-XXXX-XXXX</code>. La activás con <code>pisku activate-pro &lt;key&gt;</code>. El CLI valida la key contra nuestro servidor y listo — tier PRO activo. La validación se cachea localmente, así que funciona offline después.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">
+            ¿Qué pasa si cancelo PRO?
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-a">
+            Volvés a FREE automáticamente cuando expira tu licencia. No perdés tus skills ni tu historial — solo los features PRO quedan bloqueados. Todos tus archivos <code>.md</code> y el <code>config.json</code> quedan intactos.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">
+            ¿Los skills son genéricos o puedo crear los míos?
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-a">
+            Son tuyos. Un skill es simplemente un archivo <code>.md</code> en la carpeta <code>skills/</code>. Podés escribir los tuyos con <code>pisku add-skill mi-skill --category backend</code>, o copiar cualquier archivo Markdown que ya tengas. Se versiona con git sin problema.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="toggleFaq(this)">
+            ¿Funciona con cualquier LLM?
+            <span class="arrow">▼</span>
+          </div>
+          <div class="faq-a">
+            Sí. PISKU genera un archivo <code>.md</code> con el contexto seleccionado. Ese archivo lo pegás donde quieras: Claude, GPT, Gemini, tu propio script con la API. No estás atado a ningún proveedor.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="container">
+    <div class="row align-items-start g-4">
+      <div class="col-md-4">
+        <div class="footer-logo">PISKU</div>
+        <div class="footer-tagline">Stop wasting tokens on irrelevant context.</div>
+      </div>
+      <div class="col-md-2">
+        <div style="font-family: var(--font-mono); font-size:0.7rem; color: var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:1rem">Product</div>
+        <div class="d-flex flex-column gap-2">
+          <a href="#features" class="footer-link">Features</a>
+          <a href="#pricing" class="footer-link">Pricing</a>
+          <a href="#faq" class="footer-link">FAQ</a>
+        </div>
+      </div>
+      <div class="col-md-2">
+        <div style="font-family: var(--font-mono); font-size:0.7rem; color: var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:1rem">Links</div>
+        <div class="d-flex flex-column gap-2">
+          <a href="https://github.com" class="footer-link">GitHub</a>
+          <a href="https://twitter.com" class="footer-link">Twitter</a>
+          <a href="/cdn-cgi/l/email-protection#751d1a191435051c061e005b111003" class="footer-link">Email</a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="font-family: var(--font-mono); font-size:0.7rem; color: var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:1rem">Instalación rápida</div>
+        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius:4px; padding: 0.75rem 1rem; font-family: var(--font-mono); font-size:0.82rem;">
+          <span style="color:var(--muted)">$</span> <span style="color:var(--cyan)">pip install pisku</span><br>
+          <span style="color:var(--muted)">$</span> <span style="color:var(--cyan)">pisku init mi-proyecto</span>
+        </div>
+      </div>
+    </div>
+    <div class="footer-copy d-flex justify-content-between flex-wrap gap-2">
+      <span>© 2025 PISKU. Hecho con precisión.</span>
+      <div class="d-flex gap-3">
+        <a href="#" class="footer-link">Términos</a>
+        <a href="#" class="footer-link">Privacidad</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── CHECKOUT MODAL ─── -->
+<div class="modal fade" id="checkoutModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">⚡ Activar PISKU PRO</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p style="font-size:0.875rem; color:var(--muted); margin-bottom:1.5rem">
+          Completá tu email para recibir la license key después del pago.
+        </p>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="checkoutEmail" placeholder="vos@email.com">
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Plan</label>
+          <div id="planInfo" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--cyan); background: var(--surface); border: 1px solid var(--border); border-radius:4px; padding:0.6rem 1rem;"></div>
+        </div>
+        <button class="btn-pisku w-100" style="border:none; cursor:pointer; border-radius:4px; padding:0.8rem" onclick="submitCheckout()" id="checkoutSubmitBtn">
+          Continuar con Stripe →
+        </button>
+        <p style="font-family:var(--font-mono); font-size:0.7rem; color:var(--muted); text-align:center; margin-top:1rem">
+          🔒 Pago procesado por Stripe · Cancelá cuando quieras
+        </p>
+        <div id="checkoutError" style="display:none; margin-top:1rem; font-family:var(--font-mono); font-size:0.8rem; color: var(--red); text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // ─── CONFIG ─────────────────────────────────────────
+  const API_BASE = window.location.origin; // FastAPI en el mismo origen
+  let currentPlan = 'monthly';
+  let isYearly = false;
+
+  // ─── TERMINAL ANIMATION ──────────────────────────────
+  const lines = [
+    { text: '$ pisku init mi-dapp', cls: 't-cmd', delay: 300 },
+    { text: '', cls: 't-info', delay: 600 },
+    { text: '  PISKU v0.1.0 · Tier: 🆓 FREE', cls: 't-info', delay: 700 },
+    { text: '', cls: 't-info', delay: 800 },
+    { text: '  📚 Select skills for your context:', cls: 't-info', delay: 900 },
+    { text: '', cls: 't-info', delay: 950 },
+    { text: '  ── BACKEND ──', cls: 't-cat', delay: 1000 },
+    { text: '   1. python-fastapi       (3.2 KB)', cls: 't-skill', delay: 1100 },
+    { text: '   2. postgresql-sqlalchemy (4.1 KB)', cls: 't-skill', delay: 1200 },
+    { text: '   3. supabase             (2.8 KB)', cls: 't-skill', delay: 1300 },
+    { text: '', cls: 't-info', delay: 1350 },
+    { text: '  ── WEB3 ──', cls: 't-cat', delay: 1400 },
+    { text: '   4. solidity-base        (5.6 KB)', cls: 't-skill', delay: 1500 },
+    { text: '', cls: 't-info', delay: 1550 },
+    { text: '  Your selection: 1,4', cls: 't-cmd', delay: 2000 },
+    { text: '', cls: 't-info', delay: 2100 },
+    { text: '  ✅ Selected 2 skill(s):', cls: 't-ok', delay: 2200 },
+    { text: '    • python-fastapi  (backend)', cls: 't-skill', delay: 2300 },
+    { text: '    • solidity-base   (web3)', cls: 't-skill', delay: 2400 },
+    { text: '', cls: 't-info', delay: 2500 },
+    { text: '  ✅ Context saved to: docs/contexts/mi-dapp_20250306.md', cls: 't-ok', delay: 2700 },
+    { text: '  💰 Tokens saved: ~4,000', cls: 't-save', delay: 2900 },
+  ];
+
+  function animateTerminal() {
+    const output = document.getElementById('terminal-output');
+    const cursor = document.getElementById('cursor');
+    output.innerHTML = '';
+    output.appendChild(cursor);
+
+    lines.forEach(({ text, cls, delay }) => {
+      setTimeout(() => {
+        const span = document.createElement('span');
+        span.className = `t-line ${cls}`;
+        span.textContent = text;
+        output.insertBefore(span, cursor);
+        span.style.opacity = '1';
+      }, delay);
+    });
+  }
+
+  // ─── BILLING TOGGLE ──────────────────────────────────
+  function toggleBilling() {
+    isYearly = !isYearly;
+    const toggle = document.getElementById('billingToggle');
+    const price  = document.getElementById('priceDisplay');
+    const period = document.getElementById('periodDisplay');
+    const btn    = document.getElementById('checkoutBtn');
+
+    toggle.classList.toggle('active', isYearly);
+    price.textContent  = isYearly ? '$50' : '$5';
+    period.textContent = isYearly ? 'por año (2 meses gratis)' : 'por mes';
+    btn.onclick = () => openCheckout(isYearly ? 'yearly' : 'monthly');
+  }
+
+  // ─── CHECKOUT ────────────────────────────────────────
+  function openCheckout(plan) {
+    currentPlan = plan;
+    const planInfo = document.getElementById('planInfo');
+    planInfo.textContent = plan === 'yearly'
+      ? 'PRO Anual — $50/año (2 meses gratis)'
+      : 'PRO Mensual — $5/mes';
+    document.getElementById('checkoutError').style.display = 'none';
+    document.getElementById('checkoutEmail').value = '';
+    new bootstrap.Modal(document.getElementById('checkoutModal')).show();
+  }
+
+  async function submitCheckout() {
+    const email = document.getElementById('checkoutEmail').value.trim();
+    const errEl = document.getElementById('checkoutError');
+    const btn   = document.getElementById('checkoutSubmitBtn');
+
+    if (!email || !email.includes('@')) {
+      errEl.textContent = 'Ingresá un email válido.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    btn.textContent = 'Redirigiendo a Stripe...';
+    btn.style.opacity = '0.7';
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, plan: currentPlan }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || 'Error desconocido');
+      window.location.href = data.checkout_url;
+
+    } catch (err) {
+      errEl.textContent = `Error: ${err.message}`;
+      errEl.style.display = 'block';
+      btn.textContent = 'Continuar con Stripe →';
+      btn.style.opacity = '1';
+    }
+  }
+
+  // ─── COPY INSTALL CMD ────────────────────────────────
+  function copyInstall(e) {
+    e.preventDefault();
+    navigator.clipboard.writeText('pip install pisku').then(() => {
+      const btn = document.getElementById('install-btn');
+      btn.textContent = '✓ Copiado!';
+      setTimeout(() => btn.textContent = 'pip install pisku', 2000);
+    });
+  }
+
+  // ─── FAQ TOGGLE ──────────────────────────────────────
+  function toggleFaq(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+  }
+
+  // ─── SCROLL ANIMATIONS ───────────────────────────────
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // ─── COUNTER ANIMATION ───────────────────────────────
+  function animateCounter(el, target, duration = 1500) {
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start = Math.min(start + step, target);
+      el.textContent = Math.floor(start).toLocaleString();
+      if (start >= target) clearInterval(timer);
+    }, 16);
+  }
+
+  // ─── INIT ─────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+  

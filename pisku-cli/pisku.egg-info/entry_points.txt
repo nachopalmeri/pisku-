@@ -1,2 +1,0 @@
-[console_scripts]
-pisku = cli.main:main

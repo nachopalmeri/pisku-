@@ -1,1 +1,0 @@
-# PISKU CLI package
